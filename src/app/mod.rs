@@ -55,8 +55,9 @@ impl BgWorker {
         tracing::debug!("start BG worker");
         Ok(tokio::spawn(async move {
             tracing::debug!("spawn BG worker");
-            let rest_rate = 5;
-            let batch_size = 1000;
+            let cnf = crate::config::get();
+            let rest_rate = cnf.worker_rest;
+            let batch_size = cnf.worker_batch_size;
             let cancel_token = &self.cancel_token;
             let mut heartbeat = std::pin::pin!(tokio::time::sleep(std::time::Duration::from_secs(
                 rest_rate
@@ -95,7 +96,7 @@ impl BgWorker {
         }))
     }
 
-    async fn handle_queue(self: Arc<Self>, queue: String, batch_size: u32) -> Result<()> {
+    async fn handle_queue(self: Arc<Self>, queue: String, batch_size: u64) -> Result<()> {
         let mut range_start = 0;
         loop {
             let queued_requests = self
@@ -207,8 +208,8 @@ impl BgWorker {
     async fn pull_requests(
         &self,
         queue_name: &str,
-        range_start: u32,
-        range_size: u32,
+        range_start: u64,
+        range_size: u64,
     ) -> anyhow::Result<Vec<Vec<u8>>> {
         let mut redis_conn = self.redis_conn.clone();
         let rv: redis::RedisResult<Vec<Vec<u8>>> = redis_conn
