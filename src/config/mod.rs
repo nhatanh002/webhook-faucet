@@ -16,6 +16,8 @@ pub struct Config {
     pub shopify_client_secret: String,
     #[serde_inline_default("http://localhost:8888".to_string())]
     pub downstream_app_url: String,
+    #[serde_inline_default("/tmp/downstreamer.pid".to_string())]
+    pub downstreamer_lockfile: String,
     // #[serde_inline_default("localhost".to_string())]
     // pub db_host: String,
     // #[serde_inline_default(3306)]

@@ -775,6 +775,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01cda141df6706de531b6c46c3a33ecca755538219bd484262fa09410c13539c"
 
 [[package]]
+name = "lockfile"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5be1cf190319c74ba3e45923624626ae2e43fe42ad7e60ff38ded81044c37630"
+
+[[package]]
 name = "log"
 version = "0.4.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1780,13 +1786,13 @@ dependencies = [
  "futures",
  "http",
  "http-serde",
+ "lockfile",
  "once_cell",
  "redis",
  "reqwest",
  "ring",
  "serde",
  "serde-inline-default",
- "serde_json",
  "thiserror",
  "tokio",
  "tokio-util",

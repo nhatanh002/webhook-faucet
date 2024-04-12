@@ -26,7 +26,7 @@ serde = { version = "1.0", features = ["derive"] }
 ring = { version = "0.17.8", features = ["std"] }
 data-encoding = { version = "2.5.0" }
 http = "1"
-serde_json = { version = "1.0" }
+# serde_json = { version = "1.0" }
 bitcode = { version = "0.6.0", features = ["serde"] }
 # brotli = { version = "3.5.0", features = ["std", "ffi-api", "simd"] }
 zstd = { version = "0.13.1" }
@@ -38,6 +38,7 @@ tokio = { version = "1.28", features = ["rt-multi-thread", "macros", "signal"] }
 tokio-util = { version = "0.7" }
 tower = { version = "0.4", features = ["tracing"] }
 tower-http = { version = "0.5", features = ["fs", "trace", "compression-full", "normalize-path"] }
+lockfile = { version = "0.4.0" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["registry","env-filter"] }
 dotenvy = "0.15"

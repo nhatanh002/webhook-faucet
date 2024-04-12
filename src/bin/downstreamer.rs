@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use lockfile::Lockfile;
 use std::sync::Arc;
 use tokio::signal;
 use tracing_subscriber::{
@@ -13,6 +14,8 @@ async fn main() -> Result<()> {
         .with(EnvFilter::from_default_env())
         .with(tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE))
         .init();
+    let _lockfile = Lockfile::create(&cnf.downstreamer_lockfile)?;
+
     let token = tokio_util::sync::CancellationToken::new();
     let worker_token = token.clone();
 
