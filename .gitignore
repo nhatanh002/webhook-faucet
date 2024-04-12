@@ -1,0 +1,7 @@
+/target
+Secrets*.toml
+run/**
+.direnv/**
+.env
+.nix-cargo-home/**
+Session.vim
