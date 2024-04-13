@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use lockfile::Lockfile;
+use once_cell::sync::Lazy;
 use std::sync::Arc;
 use tokio::signal;
 use tracing_subscriber::{
@@ -9,7 +10,7 @@ use webhook_svc::*;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
-    let cnf = config::get();
+    let cnf = Lazy::force(config::get());
     tracing_subscriber::registry()
         .with(EnvFilter::from_default_env())
         .with(tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE))

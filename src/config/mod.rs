@@ -6,7 +6,7 @@ use serde_inline_default::serde_inline_default;
 #[serde_inline_default]
 #[derive(Deserialize, Debug)]
 pub struct Config {
-    #[serde_inline_default("127.0.0.1".to_string())]
+    #[serde_inline_default("0.0.0.0".to_string())]
     pub app_host: String,
     #[serde_inline_default(8080)]
     pub app_port: u32,
