@@ -64,7 +64,7 @@ impl IWebhookRequestHandleService for ProductServiceImpl {
         let now = Utc::now();
         let three_days_ago = now.sub(TimeDelta::try_days(3).unwrap());
         if triggered_at.lt(&three_days_ago) {
-            // return Err(anyhow::anyhow!("event older than 3 days"));
+            return Err(anyhow::anyhow!("event older than 3 days"));
         };
 
         let hmac_sig = request.headers.get(consts::XSHOPIFY_HMAC_SHA256).map_or(
@@ -94,7 +94,11 @@ impl IWebhookRequestHandleService for ProductServiceImpl {
         // probably need
         // tokio::spawn(async move {
         redis_conn
-            .zadd(format!("{}:{}", shop, topic), ser, triggered_at.timestamp())
+            .zadd(
+                format!("{}:{}", shop, topic),
+                ser,
+                triggered_at.timestamp_millis(),
+            )
             .await?;
         //     Ok::<(), redis::RedisError>(())
         // });
