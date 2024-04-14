@@ -1,12 +1,15 @@
+use std::ops::Sub;
 use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
+use chrono::{DateTime, TimeDelta, Utc};
 use redis::aio::MultiplexedConnection;
 use redis::AsyncCommands;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
+use crate::common::consts;
 use crate::model::error::BgError;
 use crate::model::ReqDownstream;
 use crate::services::congestion_control::CongestionControlState;
@@ -124,6 +127,28 @@ impl BgWorker {
         tracing::debug!("processing a request in queue {queue:?}");
         let req_de: ReqDownstream = bitcode::deserialize(&zstd::bulk::decompress(req, 100000)?)?;
 
+        // if request has been in queue for too long (> 3 days) without being delivered to downstream, it's usually better to just drop it
+        let triggered_at = req_de.headers.get(consts::XSHOPIFY_TRIGGERED_AT).map_or(
+            chrono::DateTime::<Utc>::MIN_UTC,
+            |h| {
+                let payload = h.to_str().unwrap_or("");
+                payload
+                    .parse::<DateTime<Utc>>()
+                    .unwrap_or(chrono::DateTime::<Utc>::MIN_UTC)
+            },
+        );
+        // check timestamp, if too old => drop
+        let now = Utc::now();
+        let three_days_ago = now.sub(TimeDelta::try_days(3).unwrap());
+        if triggered_at.lt(&three_days_ago) {
+            tracing::debug!("request older than 3 days");
+            self.delete_request(queue, req.as_slice())
+                .await
+                .inspect_err(|e| tracing::error!("{e:?}"))?;
+            tracing::debug!("deleted request in queue {queue:?}");
+            return Err(anyhow::anyhow!("request older than 3 days"));
+        };
+
         let mut retry_interval = 1;
         let mut next_retry = 1;
         let max_retry_attempts = 10;
@@ -151,11 +176,16 @@ impl BgWorker {
                         if let Some(status) = re.status()
                             && status.is_client_error() =>
                     {
-                        self.delete_request(queue, req.as_slice())
-                            .await
-                            .inspect_err(|e| tracing::error!("{e:?}"))?;
-                        tracing::debug!("faulty requests in queue {queue:?}");
-                        break;
+                        if status == http::StatusCode::BAD_REQUEST {
+                            tracing::debug!("removing faulty requests in queue {queue:?}");
+                            self.delete_request(queue, req.as_slice())
+                                .await
+                                .inspect_err(|e| tracing::error!("{e:?}"))?;
+                            break;
+                        };
+                        tracing::debug!(
+                            "downstream error {re:#?}, retrying in {retry_interval} seconds..."
+                        );
                     }
                     BgError::ReqwestError(re)
                         if let Some(status) = re.status()
@@ -189,11 +219,11 @@ impl BgWorker {
                 continue;
             } else {
                 tracing::debug!("ret = {downstream_response:?}");
-                tracing::debug!("pushed requests");
+                tracing::debug!("pushed request");
                 self.delete_request(queue, req.as_slice())
                     .await
                     .inspect_err(|e| tracing::error!("{e:?}"))?;
-                tracing::debug!("deleted requests in queue {queue:?}");
+                tracing::debug!("deleted request in queue {queue:?}");
 
                 tracing::debug!("adjusting request traffic, sleep for {:?}...", next_delay);
                 tokio::time::sleep(next_delay).await;
