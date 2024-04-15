@@ -57,6 +57,7 @@
               cargo-watch
               pkg-config
               openssl.dev
+              redis
               python311Packages.supervisor
             ] ++ linuxDeps;
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.openssl ];
