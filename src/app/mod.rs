@@ -127,7 +127,7 @@ impl BgWorker {
         tracing::debug!("processing a request in queue {queue:?}");
         let req_de: ReqDownstream = bitcode::deserialize(&zstd::bulk::decompress(req, 100000)?)?;
 
-        // if request has been in queue for too long (> 3 days) without being delivered to downstream, it's usually better to just drop it
+        // if request has been in queue for too long (> 5 days) without being delivered to downstream, it's usually better to just drop it
         let triggered_at = req_de.headers.get(consts::XSHOPIFY_TRIGGERED_AT).map_or(
             chrono::DateTime::<Utc>::MIN_UTC,
             |h| {
@@ -139,9 +139,9 @@ impl BgWorker {
         );
         // check timestamp, if too old => drop
         let now = Utc::now();
-        let three_days_ago = now.sub(TimeDelta::try_days(3).unwrap());
-        if triggered_at.lt(&three_days_ago) {
-            tracing::debug!("request older than 3 days");
+        let five_days_ago = now.sub(TimeDelta::try_days(5).unwrap());
+        if triggered_at.lt(&five_days_ago) {
+            tracing::debug!("request older than 5 days");
             self.delete_request(queue, req.as_slice())
                 .await
                 .inspect_err(|e| tracing::error!("{e:?}"))?;
