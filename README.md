@@ -38,19 +38,20 @@ experimental-features = nix-command flakes
 Either ways, the build products are at `./target/release/request-receiver` and `./target/release/downstreamer`.
 
 # Operation
-The only required runtime dependency needed is Redis (or another dropin replacement like Valkey or Keydb). It's recommended to deploy the redis instance on the same host, and connect to it using unix socket. An example configuration for that can be found at
-`./ops/redis.conf`.
+The only required runtime dependency is Redis (or another drop-in replacement like Valkey or Keydb). For better performance it's
+recommended to deploy the redis instance on the same host, and connect to it using unix socket. An example configuration for that
+can be found at `./ops/redis.conf`.
 
 You can use supervisord to start and manage `request-receiver` and `downstreamer` using the config at `./ops/supervisor.conf`. Or you
 can manually execute them yourself. No containerization yet since deployment is still pretty simple. Both redis and supervisor are
-available as a part of the nix development shell.
+available as parts of the nix development shell.
 
-There can be multiple `request-receiver` instances running at the same time, since the sockets use `SO_PORTREUSE` multiple running
-instances can increase throughput, which could help to scale up/down on demand. The `numprocs` config for supervisor can be used
-for this. Keep that number below the number of cpu cores. Operator can further tune performance with cpu load balancing and cpu
-affinity, but those are probably not necessary. There should only be a single `downstreamer` running at a time, which is
-safeguarded by a pid file, to make sure the order of requests pushed to downstream is preserved, and there's no point to increase
-concurrency here anyway: we want to *slow* the traffic rate down.
+Multiple `request-receiver` instances can run at the same time, since the sockets use `SO_REUSEPORT` multiple running instances
+can increase throughput, which could help to scale up/down on demand. The `numprocs` config for supervisor can be used for this.
+Keep that number below the number of cpu cores. Operator can further tune performance with cpu load balancing and cpu affinity,
+but those are probably not necessary. There should only be a single `downstreamer` running at a time, which is safeguarded by a
+lockfile, to make sure the order of requests pushed to downstream is preserved, and there's no point to increase concurrency here
+anyway: we want to *slow* the traffic rate down.
 
 Both `request-receiver` and `downstreamer` try to gracefully shutdown when they receive SIGTERM. Sometimes you'd want either of
 them to terminate immediately instead, which requires SIGKILL. Even with ungraceful shutdown like that it's still improbable to
@@ -65,7 +66,7 @@ important variables:
   actual delay with this as a base, and with recent push latencies as an estimate of the downstream's load status.
 * `WORKER_REST`: `downstreamer`'s rest between Redis work queue check during idle periods, in second.
 * `WORKER_BATCH`: the number of requests the worker pulls from the redis work queue.
-* `DOWNSTREAM_LOCKFILE`: path to `downstreamer`'s pid file. Necessary to make sure there's only one `downstreamer` worker process running at
+* `DOWNSTREAM_LOCKFILE`: path to `downstreamer`'s lockfile. Necessary to make sure there's only one `downstreamer` worker process running at
   a given time.
 * `REDIS_URL`: Redis connection url
 
