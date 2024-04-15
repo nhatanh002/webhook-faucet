@@ -67,6 +67,7 @@ important variables:
 * `WORKER_BATCH`: the number of requests the worker pulls from the redis work queue.
 * `DOWNSTREAM_LOCKFILE`: path to `downstreamer`'s pid file. Necessary to make sure there's only one `downstreamer` worker process running at
   a given time.
+* `REDIS_URL`: Redis connection url
 
 Rust's specific variables to control logging and backtrace:
 * `RUST_LOG`: log level, `trace` < `debug` < `info` < `warn` < `error`. Restrict to level equal and above of current value.
