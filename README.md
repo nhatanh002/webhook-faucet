@@ -7,11 +7,11 @@ stores using the app. One occasional issue is, there are some stores with a few 
 and thus generate that same few millions of webhook events under the products/update topic, which (1) is a spike load of requests at a scale the downstream backend doesn't suit to handle and (2) overloads the jobs queue of the downstream backend way past the throughput it could reach.
 
 This project is originally developed to solve the two problems above by (1) a performant, high-throughput and scalable
-*request-receiver* service to efficiently receive webhook calls and enqueue those requests and (2) a *downstreamer*
+*`request-receiver`* service to efficiently receive webhook calls and enqueue those requests and (2) a *`downstreamer`*
 worker gradually deques those requests and adaptively push them to the downstream backend in the same order they were received, at
 a rate that wouldn't overload the downstream.
 
-An alternative and more familiar approach would be push those requests to a backpressure queue with Nats or Kafka and have the backend jobs workers proactively pull them at their own pace instead, but that requires modification to the existing webhook handling logic and complicates deployment topology, which would definitely be worth it when the system grew past a certain scale, but right now it asks for more problems than it solves. When we eventually need such a backpressure queue, a performant request-receiver service is still needed to quickly handle the spike load *and* to put more guarantee on the order of webhook events the downstream receives, and we can simply swap the downstreamer with an equivalent worker that instead acts as a producer for the backpressure queue. But the current design should be sufficient for now.
+An alternative and more familiar approach would be push those requests to a backpressure queue with Nats or Kafka and have the downstream jobs workers proactively pull them at their own pace instead, but that requires modification to the existing webhook handling logic and complicates deployment topology, which would definitely be worth it when the system grew past a certain scale, but right now it asks for more problems than it solves. When we eventually need such a backpressure queue, a performant `request-receiver` service is still needed to quickly handle the spike load *and* to put more guarantee on the order of webhook events the downstream receives, and we can simply swap the `downstreamer` with an equivalent worker that instead acts as a producer for the backpressure queue. But the current design should be sufficient for now.
 
 This design could also be adapted into a more generic congestion control system at the application layer and thus can be applied
 to usecases beyond its original purpose.
@@ -41,22 +41,31 @@ Either ways, the build products are at `./target/release/request-receiver` and `
 The only required runtime dependency needed is Redis (or another dropin replacement like Valkey or Keydb). It's recommended to deploy the redis instance on the same host, and connect to it using unix socket. An example configuration for that can be found at
 `./ops/redis.conf`.
 
-You can use supervisord to start and manage request-receiver and downstreamer using the config at `./ops/supervisor.conf`. Or you
+You can use supervisord to start and manage `request-receiver` and `downstreamer` using the config at `./ops/supervisor.conf`. Or you
 can manually execute them yourself. No containerization yet since deployment is still pretty simple. Both redis and supervisor are
 available as a part of the nix development shell.
 
-There can be multiple `request-receiver` instances running at the same time, since the sockets use `SO_PORTREUSE` multiple running instances can increase throughput, which could help to scale up/down on demand. The `numprocs` config for supervisor can be used for this. Keep that number below the number of cpu cores. Operator can further tune performance with cpu load balancing and cpu affinity, but those are probably not necessary.
+There can be multiple `request-receiver` instances running at the same time, since the sockets use `SO_PORTREUSE` multiple running
+instances can increase throughput, which could help to scale up/down on demand. The `numprocs` config for supervisor can be used
+for this. Keep that number below the number of cpu cores. Operator can further tune performance with cpu load balancing and cpu
+affinity, but those are probably not necessary. There should only be a single `downstreamer` running at a time, which is
+safeguarded by a pid file, to make sure the order of requests pushed to downstream is preserved, and there's no point to increase
+concurrency here anyway: we want to *slow* the traffic rate down.
+
+Both `request-receiver` and `downstreamer` try to gracefully shutdown when they receive SIGTERM. Sometimes you'd want either of
+them to terminate immediately instead, which requires SIGKILL. Even with ungraceful shutdown like that it's still improbable to
+leave anything in inconsistent state thanks to how Redis works.
 
 Both executables source their config from environment variables as defined in `.env.example`, if there's an `.env` file as you'd
 expect they would populate their processes' with the environment variables defined there in the familiar `dotenv` manner. Some
 important variables:
 * `DOWNSTREAM_APP_URL`: base url of the downstream backend that the worker would push request to
 * `SHOPIFY_CLIENT_SECRET`: shopify application's client secret, used to verify the webhook request's hmac signature
-* `BASE_DELAY_MS`: the base delay between downstream pushes in milliseconds, used for rate control. The worker would adapt the
+* `BASE_DELAY_MS`: the base delay between downstream pushes in milliseconds, used for rate control. `downstreamer` would adapt the
   actual delay with this as a base, and with recent push latencies as an estimate of the downstream's load status.
-* `WORKER_REST`: worker's rest between Redis work queue check during idle periods, in second.
+* `WORKER_REST`: `downstreamer`'s rest between Redis work queue check during idle periods, in second.
 * `WORKER_BATCH`: the number of requests the worker pulls from the redis work queue.
-* `DOWNSTREAM_LOCKFILE`: path to worker's pid file. Necessary to make sure there's only one downstreamer worker process running at
+* `DOWNSTREAM_LOCKFILE`: path to `downstreamer`'s pid file. Necessary to make sure there's only one `downstreamer` worker process running at
   a given time.
 
 Rust's specific variables to control logging and backtrace:
