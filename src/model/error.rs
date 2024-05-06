@@ -40,3 +40,35 @@ pub enum BgError {
     #[error("error: {0}")]
     ReqwestError(reqwest::Error),
 }
+
+#[derive(Debug, ThisError)]
+pub enum BgKafkaError {
+    #[error("RDKafka error: {0}")]
+    RDKafka(#[from] rdkafka::error::RDKafkaError),
+    #[error("Kafka error: {0}")]
+    KafkaError(#[from] rdkafka::error::KafkaError),
+    #[error("json conversion error: {0}")]
+    JsonDerserError(#[from] serde_json::Error),
+}
+
+impl<'a>
+    From<(
+        rdkafka::error::KafkaError,
+        rdkafka::producer::FutureRecord<'a, str, std::vec::Vec<u8>>,
+    )> for BgKafkaError
+{
+    fn from(
+        e: (
+            rdkafka::error::KafkaError,
+            rdkafka::producer::FutureRecord<'a, str, std::vec::Vec<u8>>,
+        ),
+    ) -> Self {
+        Self::KafkaError(e.0)
+    }
+}
+
+impl From<(rdkafka::error::KafkaError, rdkafka::message::OwnedMessage)> for BgKafkaError {
+    fn from(e: (rdkafka::error::KafkaError, rdkafka::message::OwnedMessage)) -> Self {
+        Self::KafkaError(e.0)
+    }
+}
