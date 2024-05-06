@@ -24,10 +24,10 @@
 
 - The load testing tool of choice was [vegeta](https://github.com/tsenart/vegeta) for its flexible reporting capability and good
   performance, but if you're more familiar with other load testing tool like `ab` feel free to use your own trusted tool, since
-  porting the below test to any http load testing tool should be pretty straightforward. One downside of `vegeta` is how sensitive
+  porting the below tests to any http load testing tool should be pretty straightforward. One downside of `vegeta` is how sensitive
   it is to the combination of `cpus`, `workers` and `connections` config when testing at high load.
 
-- `request-receiver` was built with `--releaes` profile, ran with log level at `error` to minimize the effect of unrelated console
+- `request-receiver` was built with `--release` profile, ran with log level at `error` to minimize the effect of unrelated console
   IO during the test, and connected to `redis` using unix socket as recommended in `README`.
 
 - Test machine specs:
