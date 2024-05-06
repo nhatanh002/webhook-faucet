@@ -43,7 +43,7 @@ impl CongestionControlState {
         // delaying gain: kinda like a reciprocal to BBR's pacing gain
         let delaying_gain = if *current_rtt > rtt_prev {
             // rtt increases => needs to slow down by increasing delaying duration
-            1.0 / (1.0 - 0.5 * w.powi(4))
+            1.0 / (1.0 - 0.75 * w.powi(4))
         } else {
             // rtt decreases => speeds up by decreasing delaying duration
             1.0 / (1.5 - 0.5 * w.powf(0.25))
