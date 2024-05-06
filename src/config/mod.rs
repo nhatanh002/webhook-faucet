@@ -13,6 +13,12 @@ pub struct Config {
     #[serde_inline_default("error".to_string())]
     pub rust_log: String,
     pub redis_url: String,
+    #[serde_inline_default("0.0.0.0:9092".to_string())]
+    pub kafka_url: String,
+    #[serde_inline_default("messages".to_string())]
+    pub kafka_topic: String,
+    #[serde_inline_default("bg_kafka_wrk".to_string())]
+    pub kafka_tx_id: String,
     pub shopify_client_secret: String,
     #[serde_inline_default("http://localhost:8888".to_string())]
     pub downstream_app_url: String,
