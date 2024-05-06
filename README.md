@@ -121,3 +121,6 @@ The system's gateway (i.e. probably the internet-facing nginx server) should be 
 under heavy load (probably just `/webhook/products/update` for now) to the server hosting this, and the downstreamer worker would
 gradually push received webhook event to the old endpoint at a rate it can handle. The exact steps to do this are up to the
 operator/administrator, since it depends on how the current system is deployed.
+
+# Load testing
+see [load-testing.md](bench/load-testing.md)
