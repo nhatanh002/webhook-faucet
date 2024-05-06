@@ -1,0 +1,2 @@
+POST http://localhost:8888/webhook/products/update
+@request.json

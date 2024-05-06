@@ -61,6 +61,8 @@
               zlib
               redis
               python311Packages.supervisor
+              docker-compose
+              vegeta
             ] ++ linuxDeps;
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.openssl ];
             shellHook = ''
