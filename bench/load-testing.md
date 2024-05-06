@@ -16,15 +16,16 @@
   hand, since the result is strictly less than the real upper bound, if that result was acceptable then the upper bound would
   definitely be acceptable.
 
-- The load testing tool of choice here is [vegeta](https://github.com/tsenart/vegeta) for its high performance, great reporting
-  capability and ease of distributed load testing coordination, when we eventually have the resource for that kind of test.
-  Another minor but convenient reason is `vegeta` adds a header with an incrementing sequence number to each HTTP request, which
-  would make each request object stored on `redis` unique even though they are actually the same prototypical request, forcing
-  `redis` to actually store each as a seperate item thus exert a more realistic memory pressure.
-  `vegeta` would already be loaded in the development shell defined in `flake.nix` if you used `nix`.
-
 - The target endpoint to be tested is `/products/update` (since in practice it's also the endpoint under the heaviest load),
-  defined in the file `loadtest`. The payload used is in `request.json`, and the script `attack.sh` contains an example command to run a spike throughput test. The test results below also use the same `loadtest` and `request.json`. If reader wants to replicate the test, remember to change the timestamp header `X-Shopify-Triggered-At` to a more recent value, since there's a check to rule out outdated requests in the webhook handler.
+  defined in the file `loadtest`. The payload used is in `request.json`, and the script `attack.sh` contains an example command to
+  run a spike throughput test. The test results below also use the same `loadtest` and `request.json`. If reader wants to
+  replicate the test, remember to change the timestamp header `X-Shopify-Triggered-At` to a more recent value, since there's a
+  check to rule out outdated requests in the webhook handler.
+
+- The load testing tool of choice was [vegeta](https://github.com/tsenart/vegeta) for its flexible reporting capability and good
+  performance, but if you're more familiar with other load testing tool like `ab` feel free to use your own trusted tool, since
+  porting the below test to any http load testing tool should be pretty straightforward. One downside of `vegeta` is how sensitive
+  it is to the combination of `cpus`, `workers` and `connections` config when testing at high load.
 
 - `request-receiver` was built with `--releaes` profile, ran with log level at `error` to minimize the effect of unrelated console
   IO during the test, and connected to `redis` using unix socket as recommended in `README`.
