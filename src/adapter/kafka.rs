@@ -14,7 +14,11 @@ pub fn create_kafka_producer() -> anyhow::Result<FutureProducer> {
         .expect("Producer creation error");
     producer
         .init_transactions(std::time::Duration::from_millis(5000))
-        .inspect_err(|e| tracing::error!("shit happened: {e:#?}"))?;
+        .inspect_err(|e| {
+            tracing::error!(
+                "something happened when producer tried to connect to kafka cluster: {e:#?}"
+            )
+        })?;
 
     Ok(producer)
 }

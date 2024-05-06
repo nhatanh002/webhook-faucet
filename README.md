@@ -16,6 +16,39 @@ An alternative and more familiar approach would be push those requests to a back
 This design could also be adapted into a more generic congestion control system at the application layer and thus can be applied
 to usecases beyond its original purpose.
 
+
+ * Update: `kafka_producer` added. This background worker regularly pulls webhook events stored in redis and sends to a kafka cluster
+   under a single topic (configured by the env variable `KAFKA_TOPIC`). There's no explicit partition config at the moment, but
+   each webhook event is sent to kafka with its shopify webhook's topic as the key, so partition config in the future should also
+   enqueue message with the same shopify webhook's topic under the same partition to respect that.
+   `kafka_producer` uses the same lockfile as `downstreamer`, since the intention is they are mutually exclusive and only one
+   should be running at the same time.
+ * Messages sent to Kafka are in the same format as the following example. The gist of this is, each message is the whole HTTP
+   request shopify sent to the webhook endpoint, and the `payload` field is the body of that request:
+```json
+{
+  "endpoint": "/webhook/products/update",
+  "method": "POST",
+  "headers": {
+    "host": "rnrcw-222-254-3-213.a.free.pinggy.link",
+    "user-agent": "Shopify-Captain-Hook",
+    "content-length": "4388",
+    "accept": "*/*",
+    "accept-encoding": "gzip;q=1.0,deflate;q=0.6,identity;q=0.3",
+    "content-type": "application/json",
+    "x-shopify-api-version": "2024-01",
+    "x-shopify-hmac-sha256": "IYSq0SDPgr4Qu3JfMWl2vctQ5ELGrLoJcBTfZxahzEs=",
+    "x-shopify-product-id": "9079211262258",
+    "x-shopify-shop-domain": "feeder8.myshopify.com",
+    "x-shopify-topic": "products/update",
+    "x-shopify-triggered-at": "2024-05-06T10:45:17.912552336Z",
+    "x-shopify-webhook-id": "12815508-f11e-41d0-af97-dba11f47b294"
+  },
+  "queries": {},
+  "payload": "{\"admin_graphql_api_id\":\"gid:\\/\\/shopify\\/Product\\/9079211262258\",\"body_html\":null,\"created_at\":\"2024-03-05T14:52:06+07:00\",\"handle\":\"selling-plans-ski-wax\",\"id\":9079211262258,\"product_type\":\"\",\"published_at\":\"2024-03-05T14:52:06+07:00\",\"template_suffix\":null,\"title\":\"Selling Plans Ski Waxx\",\"updated_at\":\"2024-05-06T17:45:18+07:00\",\"vendor\":\"feeder8\",\"status\":\"active\",\"published_scope\":\"web\",\"tags\":\"Accessory, Sport, Winter\",\"variants\":[{\"admin_graphql_api_id\":\"gid:\\/\\/shopify\\/ProductVariant\\/47932212183346\",\"barcode\":null,\"compare_at_price\":null,\"created_at\":\"2024-03-05T14:52:06+07:00\",\"fulfillment_service\":\"manual\",\"id\":47932212183346,\"inventory_management\":\"shopify\",\"inventory_policy\":\"deny\",\"position\":1,\"price\":\"25\",\"product_id\":9079211262258,\"sku\":\"\",\"taxable\":true,\"title\":\"Selling Plans Ski Wax\",\"updated_at\":\"2024-03-05T14:52:06+07:00\",\"option1\":\"Selling Plans Ski Wax\",\"option2\":null,\"option3\":null,\"grams\":57,\"image_id\":44574175396146,\"weight\":2.0,\"weight_unit\":\"oz\",\"inventory_item_id\":49985193574706,\"inventory_quantity\":10,\"old_inventory_quantity\":10,\"requires_shipping\":true},{\"admin_graphql_api_id\":\"gid:\\/\\/shopify\\/ProductVariant\\/47932212216114\",\"barcode\":null,\"compare_at_price\":null,\"created_at\":\"2024-03-05T14:52:06+07:00\",\"fulfillment_service\":\"manual\",\"id\":47932212216114,\"inventory_management\":\"shopify\",\"inventory_policy\":\"deny\",\"position\":2,\"price\":\"50\",\"product_id\":9079211262258,\"sku\":\"\",\"taxable\":true,\"title\":\"Special Selling Plans Ski Wax\",\"updated_at\":\"2024-03-05T14:52:06+07:00\",\"option1\":\"Special Selling Plans Ski Wax\",\"option2\":null,\"option3\":null,\"grams\":71,\"image_id\":44574175428914,\"weight\":2.5,\"weight_unit\":\"oz\",\"inventory_item_id\":49985193607474,\"inventory_quantity\":10,\"old_inventory_quantity\":10,\"requires_shipping\":true},{\"admin_graphql_api_id\":\"gid:\\/\\/shopify\\/ProductVariant\\/47932212248882\",\"barcode\":null,\"compare_at_price\":null,\"created_at\":\"2024-03-05T14:52:06+07:00\",\"fulfillment_service\":\"manual\",\"id\":47932212248882,\"inventory_management\":\"shopify\",\"inventory_policy\":\"deny\",\"position\":3,\"price\":\"10\",\"product_id\":9079211262258,\"sku\":\"\",\"taxable\":true,\"title\":\"Sample Selling Plans Ski Wax\",\"updated_at\":\"2024-03-05T14:52:06+07:00\",\"option1\":\"Sample Selling Plans Ski Wax\",\"option2\":null,\"option3\":null,\"grams\":14,\"image_id\":44574175494450,\"weight\":0.5,\"weight_unit\":\"oz\",\"inventory_item_id\":49985193640242,\"inventory_quantity\":10,\"old_inventory_quantity\":10,\"requires_shipping\":true}],\"options\":[{\"name\":\"Title\",\"id\":11431955824946,\"product_id\":9079211262258,\"position\":1,\"values\":[\"Selling Plans Ski Wax\",\"Special Selling Plans Ski Wax\",\"Sample Selling Plans Ski Wax\"]}],\"images\":[{\"id\":44574175396146,\"product_id\":9079211262258,\"position\":1,\"created_at\":\"2024-03-05T14:52:06+07:00\",\"updated_at\":\"2024-03-05T14:52:06+07:00\",\"alt\":\"A bar of golden yellow wax\",\"width\":2881,\"height\":2881,\"src\":\"https:\\/\\/cdn.shopify.com\\/s\\/files\\/1\\/0864\\/9808\\/3122\\/products\\/snowboard_wax.png?v=1709625126\",\"variant_ids\":[47932212183346],\"admin_graphql_api_id\":\"gid:\\/\\/shopify\\/ProductImage\\/44574175396146\"},{\"id\":44574175428914,\"product_id\":9079211262258,\"position\":2,\"created_at\":\"2024-03-05T14:52:06+07:00\",\"updated_at\":\"2024-03-05T14:52:06+07:00\",\"alt\":\"A bar of purple wax\",\"width\":2881,\"height\":2881,\"src\":\"https:\\/\\/cdn.shopify.com\\/s\\/files\\/1\\/0864\\/9808\\/3122\\/products\\/wax-special.png?v=1709625126\",\"variant_ids\":[47932212216114],\"admin_graphql_api_id\":\"gid:\\/\\/shopify\\/ProductImage\\/44574175428914\"},{\"id\":44574175494450,\"product_id\":9079211262258,\"position\":3,\"created_at\":\"2024-03-05T14:52:06+07:00\",\"updated_at\":\"2024-03-05T14:52:06+07:00\",\"alt\":\"a small cube of wax\",\"width\":2881,\"height\":2881,\"src\":\"https:\\/\\/cdn.shopify.com\\/s\\/files\\/1\\/0864\\/9808\\/3122\\/products\\/sample-normal-wax.png?v=1709625126\",\"variant_ids\":[47932212248882],\"admin_graphql_api_id\":\"gid:\\/\\/shopify\\/ProductImage\\/44574175494450\"}],\"image\":{\"id\":44574175396146,\"product_id\":9079211262258,\"position\":1,\"created_at\":\"2024-03-05T14:52:06+07:00\",\"updated_at\":\"2024-03-05T14:52:06+07:00\",\"alt\":\"A bar of golden yellow wax\",\"width\":2881,\"height\":2881,\"src\":\"https:\\/\\/cdn.shopify.com\\/s\\/files\\/1\\/0864\\/9808\\/3122\\/products\\/snowboard_wax.png?v=1709625126\",\"variant_ids\":[47932212183346],\"admin_graphql_api_id\":\"gid:\\/\\/shopify\\/ProductImage\\/44574175396146\"},\"variant_ids\":[{\"id\":47932212183346},{\"id\":47932212216114},{\"id\":47932212248882}]}"
+}
+```
+
 # Build
 This project is written using the Rust 1.79.0 nightly, so at least you'll need rustc and cargo at least at that version to build the
 project. If your OS' package manager didn't have the right version, you can either use
@@ -64,11 +97,15 @@ important variables:
 * `SHOPIFY_CLIENT_SECRET`: shopify application's client secret, used to verify the webhook request's hmac signature
 * `BASE_DELAY_MS`: the base delay between downstream pushes in milliseconds, used for rate control. `downstreamer` would adapt the
   actual delay with this as a base, and with recent push latencies as an estimate of the downstream's load status.
-* `WORKER_REST`: `downstreamer`'s rest between Redis work queue check during idle periods, in second.
+* `WORKER_REST`: `downstreamer` and `kafka_producer`'s rest between Redis work queue check during idle periods, in second.
 * `WORKER_BATCH`: the number of requests the worker pulls from the redis work queue.
-* `DOWNSTREAM_LOCKFILE`: path to `downstreamer`'s lockfile. Necessary to make sure there's only one `downstreamer` worker process running at
-  a given time.
+* `DOWNSTREAM_LOCKFILE`: path to `downstreamer` and `kafka_producer`'s lockfile. Necessary to make sure there's only one instance of either `downstreamer` or `kafka_producer` worker process running at a given time.
 * `REDIS_URL`: Redis connection url
+* `KAFKA_URL`: Kafka cluster url
+* `KAFKA_TOPIC`: Kafka topic to send webhook events to
+* `KAFKA_TX_ID`: Kafka producer's transactional.id to enforce Kafka's transactional guarantee across different runs of the
+  producer. Avoid changing this value too often after set, if you must change it, ensure that there's no message in Kafka before
+  and during the period the change is being made.
 
 Rust's specific variables to control logging and backtrace:
 * `RUST_LOG`: log level, `trace` < `debug` < `info` < `warn` < `error`. Restrict to level equal and above of current value.
