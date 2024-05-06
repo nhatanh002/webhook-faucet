@@ -22,7 +22,7 @@ pub struct Config {
     pub shopify_client_secret: String,
     #[serde_inline_default("http://localhost:8888".to_string())]
     pub downstream_app_url: String,
-    #[serde_inline_default("/tmp/downstreamer.pid".to_string())]
+    #[serde_inline_default("/tmp/background_worker.pid".to_string())]
     pub bg_worker_lockfile: String,
     #[serde_inline_default(0)]
     pub base_delay_ms: u64,
