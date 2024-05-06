@@ -23,7 +23,7 @@ pub struct Config {
     #[serde_inline_default("http://localhost:8888".to_string())]
     pub downstream_app_url: String,
     #[serde_inline_default("/tmp/downstreamer.pid".to_string())]
-    pub downstreamer_lockfile: String,
+    pub bg_worker_lockfile: String,
     #[serde_inline_default(0)]
     pub base_delay_ms: u64,
     #[serde_inline_default(5)]

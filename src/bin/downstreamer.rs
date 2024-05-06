@@ -15,7 +15,7 @@ async fn main() -> Result<()> {
         .with(EnvFilter::from_default_env())
         .with(tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE))
         .init();
-    let _lockfile = Lockfile::create(&cnf.downstreamer_lockfile)?;
+    let _lockfile = Lockfile::create(&cnf.bg_worker_lockfile)?;
 
     let token = tokio_util::sync::CancellationToken::new();
     let worker_token = token.clone();
