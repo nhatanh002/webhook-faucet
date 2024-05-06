@@ -75,22 +75,27 @@ The only required runtime dependency is Redis (or another drop-in replacement li
 recommended to deploy the redis instance on the same host, and connect to it using unix socket. An example configuration for that
 can be found at `./ops/redis.conf`.
 
-You can use supervisord to start and manage `request-receiver` and `downstreamer` using the config at `./ops/supervisor.conf`. Or you
-can manually execute them yourself. No containerization yet since deployment is still pretty simple. Both redis and supervisor are
-available as parts of the nix development shell.
+You can use supervisord to start and manage `request-receiver` and `downstreamer` using the config at `./ops/supervisor.conf`. Or
+you can manually execute them yourself. No containerization yet since deployment is still pretty simple. Both redis and supervisor
+are available as parts of the nix development shell. Operator can edit the config to use `kafka_producer` instead of
+`downstreamer`, but only of of those two should be used at the same time.
 
-Multiple `request-receiver` instances can run at the same time, since the sockets use `SO_REUSEPORT` multiple running instances
-can increase throughput, which could help to scale up/down on demand. The `numprocs` config for supervisor can be used for this.
-Keep that number below the number of cpu cores. Operator can further tune performance with cpu load balancing and cpu affinity,
-but those are probably not necessary. There should only be a single `downstreamer` running at a time, which is safeguarded by a
-lockfile, to make sure the order of requests pushed to downstream is preserved, and there's no point to increase concurrency here
-anyway: we want to *slow* the traffic rate down.
+Multiple `request-receiver` instances can run at the same time since the sockets use `SO_REUSEPORT`. Multiple running instances
+can increase throughput if the server is configured properly (cpu load balancing from the rps_cpu parameter of NIC's rx queue, cpu
+affinity of each replica `request-receiver` process), which could help to scale up/down on demand. The `numprocs` config for
+supervisor can be used for this, which should not exceed the number of cpu cores. This is hopefully never necessary since current
+`tokio` runtime is already supremely efficient at async network IO and the throughput bottleneck would probably be somewhere else
+and not the `request-receiver` itself.
 
-Both `request-receiver` and `downstreamer` try to gracefully shutdown when they receive SIGTERM. Sometimes you'd want either of
-them to terminate immediately instead, which requires SIGKILL. Even with ungraceful shutdown like that it's still improbable to
-leave anything in inconsistent state thanks to how Redis works.
+There should only be a single `downstreamer`/`kafka_producer` running at a time, which is safeguarded by a lockfile, to make sure
+the order of requests pushed to downstream/kafka is preserved, and there's no point to increase concurrency here anyway, and for
+`downstreamer` we even intend to *slow* the traffic rate down.
 
-Both executables source their config from environment variables as defined in `.env.example`, if there's an `.env` file as you'd
+Both `request-receiver` and `downstreamer`/`kafka_producer` try to gracefully shutdown when they receive SIGTERM. Sometimes you'd
+want either of them to terminate immediately instead, which requires SIGKILL. Even with ungraceful shutdown like that it's still
+improbable to leave anything in inconsistent state thanks to how Redis works.
+
+The executables source their config from environment variables as defined in `.env.example`, if there's an `.env` file as you'd
 expect they would populate their processes' with the environment variables defined there in the familiar `dotenv` manner. Some
 important variables:
 * `DOWNSTREAM_APP_URL`: base url of the downstream backend that the worker would push request to
