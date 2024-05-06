@@ -28,7 +28,7 @@
   it is to the combination of `cpus`, `workers` and `connections` config when testing at high load.
 
 - `request-receiver` was built with `--release` profile, ran with log level at `error` to minimize the effect of unrelated console
-  IO during the test, and connected to `redis` using unix socket as recommended in `README`.
+  IO during the test, and connected to `redis` using unix socket as recommended in [README](../README.md).
 
 - Test machine specs:
 ![test system specs](test-system.png)

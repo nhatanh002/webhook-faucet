@@ -68,7 +68,7 @@ experimental-features = nix-command flakes
 3. Spin up the development shell: `nix develop`
 4. Build the project: `cargo build --release`
 
-Either ways, the build products are at `./target/release/request-receiver` and `./target/release/downstreamer`.
+Either ways, the build products are at `./target/release/request-receiver`, `./target/release/downstreamer` and `./target/release/kafka_producer`.
 
 # Operation
 The only required runtime dependency is Redis (or another drop-in replacement like Valkey or Keydb). For better performance it's
