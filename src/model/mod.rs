@@ -26,11 +26,13 @@ pub struct ReqDownstream {
 // customized serialize/deserialize functions for the JSON payload, in case the JSON serialization
 // for ReqDownstream needs payload to be serialized as actual JSON object and not just a string in
 // JSON syntax
+#[allow(dead_code)]
 fn payload_serialize<S: Serializer>(payload: &str, s: S) -> Result<S::Ok, S::Error> {
     let v: &RawValue = serde_json::from_str(payload).map_err(serde::ser::Error::custom)?; //expect("invalid json");
     v.serialize(s)
 }
 
+#[allow(dead_code)]
 fn payload_deserialize<'de, D: Deserializer<'de>>(de: D) -> Result<String, D::Error> {
     struct RawValueVisitor;
     impl<'de> serde::de::Visitor<'de> for RawValueVisitor {

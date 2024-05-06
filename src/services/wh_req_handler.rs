@@ -3,8 +3,7 @@ use core::ops::Sub;
 use redis::aio::MultiplexedConnection;
 use redis::AsyncCommands;
 
-use crate::common::{self, consts};
-use crate::config;
+use crate::common::consts;
 use crate::model::ReqDownstream;
 
 use super::i_wh_req_handler::IWebhookRequestHandleService;
