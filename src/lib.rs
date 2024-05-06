@@ -1,6 +1,7 @@
 #![feature(result_flattening)]
 #![feature(if_let_guard)]
 #![feature(let_chains)]
+pub mod adapter;
 pub mod app;
 pub mod common;
 pub mod config;
