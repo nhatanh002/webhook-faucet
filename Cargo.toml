@@ -17,16 +17,20 @@ path = "src/bin/requests_receiver.rs"
 name = "downstreamer"
 path = "src/bin/downstreamer.rs"
 
+[[bin]]
+name = "kafka_producer"
+path = "src/bin/kafka_producer.rs"
+
 [dependencies]
 axum = { version = "0.7.5", features = [ "macros" ]}
 chrono = "0.4"
 futures = "0.3"
 reqwest = { version = "0.12.2", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["raw_value"] }
 ring = { version = "0.17.8", features = ["std"] }
 data-encoding = { version = "2.5.0" }
 http = "1"
-# serde_json = { version = "1.0" }
 bitcode = { version = "0.6.0", features = ["serde"] }
 # brotli = { version = "3.5.0", features = ["std", "ffi-api", "simd"] }
 zstd = { version = "0.13.1" }
@@ -46,3 +50,4 @@ envy = "0.4"
 once_cell = "1.13.0"
 anyhow ={ version = "1.0.58", features = [ "backtrace" ] }
 thiserror = "1.0.31"
+rdkafka = { version = "0.36.2", features = ["cmake-build"] }

@@ -57,6 +57,8 @@
               cargo-watch
               pkg-config
               openssl.dev
+              cmake
+              zlib
               redis
               python311Packages.supervisor
             ] ++ linuxDeps;
