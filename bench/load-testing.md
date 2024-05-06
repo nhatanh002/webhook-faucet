@@ -30,10 +30,10 @@
   IO during the test, and connected to `redis` using unix socket as recommended in `README`.
 
 - Test machine specs:
-(!./test-system.png)
+!(./test-system.png)
   - There are 24 CPU cores, but in fact there are only 16 performance cores and the remaining 8 cores are economical cores to
     handle less demanding everyday tasks, since this is actually a consumer machine and not a real production server.
-(!./cpu.png)
+!(./cpu.png)
 
 ## Result
 - Spike throughput test:
@@ -43,10 +43,10 @@
     the maximum throughput when also running `vegeta` at its limit on the same system.
   - Either way, this should already be more than enough to handle real spike loads from Shopify on a reasonable host not too
     inferior to the test system
-(!./throughput-80krps-test.png)
+!(./throughput-80krps-test.png)
 - Sustained load test:
   - Sustained load at 50k rps over 60 seconds, no discernable performance degrade
-(!./sustained-50rps-60secs-test.png)
+!(./sustained-50rps-60secs-test.png)
   - The same load over 120 seconds, average throughput degrades to around 43k rps. It seems the only problem is with accummulated
     memory usage by redis, so if the background worker (either `downstreamer` of `kafka_producer`) can offload items stored on redis fast enough and keep memory usage healthy, 40-50k rps load can be sustained for an extended period of time.
-(!sustained-50rps-120secs-test.png)
+!(sustained-50rps-120secs-test.png)
