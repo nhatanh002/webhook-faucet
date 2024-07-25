@@ -1,7 +1,6 @@
 use anyhow::{Context, Result};
 use lockfile::Lockfile;
 use once_cell::sync::Lazy;
-use std::sync::Arc;
 use tokio::signal;
 use tracing_subscriber::{
     fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
@@ -23,18 +22,17 @@ async fn main() -> Result<()> {
     let redis_cli =
         redis::Client::open(cnf.redis_url.as_str()).context("failed to init redis client")?;
 
-    let redis_conn = redis_cli
-        .get_multiplexed_async_connection()
+    let redis_conn = redis::aio::ConnectionManager::new(redis_cli)
         .await
-        .context("failed to connect to redis for consumer")?;
+        .context("failed to connect to redis")?;
 
-    let worker = Arc::new(app::BgWorker::new(
+    let worker = app::BgWorker::new(
         redis_conn,
         worker_token,
         reqwest::ClientBuilder::new()
             .tcp_keepalive(std::time::Duration::from_secs(60))
             .build()?,
-    ));
+    );
 
     tracing::info!("starting background jobs");
     let worker_handler = worker.start_bg()?;

@@ -12,14 +12,15 @@ use crate::model::ReqDownstream;
 
 impl BgWorker {
     #[tracing::instrument(level = "debug")]
-    pub fn start_bg(self: Arc<Self>) -> anyhow::Result<tokio::task::JoinHandle<Result<()>>> {
+    pub fn start_bg(self) -> anyhow::Result<tokio::task::JoinHandle<Result<()>>> {
         tracing::debug!("start BG worker");
+        let selfp = Arc::new(self);
         Ok(tokio::spawn(async move {
             tracing::debug!("spawn BG worker");
             let cnf = crate::config::get();
             let rest_rate = cnf.worker_rest;
             let batch_size = cnf.worker_batch_size;
-            let cancel_token = &self.cancel_token;
+            let cancel_token = &selfp.cancel_token;
             let mut heartbeat = std::pin::pin!(tokio::time::sleep(std::time::Duration::from_secs(
                 rest_rate
             )));
@@ -35,7 +36,7 @@ impl BgWorker {
                     },
                     _ = timer => {
                         tracing::info!("bg worker woke up!");
-                        let mut redis_conn = self.redis_conn.clone();
+                        let mut redis_conn = selfp.redis_conn.clone();
                         let mut cmd = redis::cmd("SCAN");
                         cmd.arg(0).arg("TYPE").arg("ZSET"); // build Cmd
                         let mut queues: redis::AsyncIter<String> = cmd.iter_async(&mut redis_conn).await?;
@@ -43,7 +44,7 @@ impl BgWorker {
                         let mut handlers = vec![];
                         while let Some(queue) = queues.next_item().await {
                             tracing::info!("handling a batch of requests in {queue:?}");
-                            let migrating_self = self.clone();
+                            let migrating_self = selfp.clone();
                             let handler = tokio::spawn(migrating_self.handle_queue(queue, batch_size));
                             handlers.push(handler);
                         }

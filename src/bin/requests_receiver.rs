@@ -18,10 +18,9 @@ async fn main() -> Result<()> {
     let redis_cli =
         redis::Client::open(cnf.redis_url.as_str()).context("failed to init redis client")?;
 
-    let redis_conn = redis_cli
-        .get_multiplexed_async_connection()
+    let redis_conn = redis::aio::ConnectionManager::new(redis_cli)
         .await
-        .context("failed to connect to redis for consumer")?;
+        .context("failed to connect to redis")?;
 
     let product_svc = services::wh_req_handler::ProductServiceImpl::new(redis_conn);
     let app = AppEnv::new(product_svc);

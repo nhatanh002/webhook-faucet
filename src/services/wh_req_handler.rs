@@ -1,6 +1,6 @@
 use chrono::{DateTime, TimeDelta, Utc};
 use core::ops::Sub;
-use redis::aio::MultiplexedConnection;
+use redis::aio::{ConnectionLike, ConnectionManager};
 use redis::AsyncCommands;
 
 use crate::common::consts;
@@ -8,14 +8,22 @@ use crate::model::ReqDownstream;
 
 use super::i_wh_req_handler::IWebhookRequestHandleService;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ProductServiceImpl {
-    redis_conn: MultiplexedConnection,
+    redis_conn: ConnectionManager,
 }
 
 impl ProductServiceImpl {
-    pub fn new(redis_conn: MultiplexedConnection) -> Self {
+    pub fn new(redis_conn: ConnectionManager) -> Self {
         Self { redis_conn }
+    }
+}
+
+impl std::fmt::Debug for ProductServiceImpl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ProductServiceImpl")
+            .field("redis_conn: ", &self.redis_conn.get_db())
+            .finish()
     }
 }
 
