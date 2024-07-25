@@ -29,17 +29,21 @@ impl CongestionControlState {
         self.rtt_previous = *current_rtt;
         let estimated_btl_bw = self.rtt_max - self.rtt_min;
         // base delaying duration, to adjust initial load and avoid spikes to the downstream's queue
+        // updated: base_delay is now the minimum delay, which is more intuitive for system operator
         let base_delay = self.base_delay;
 
         // 0.9 = compensation factor, so (1) it'll never get to 0 delay and (2) to account for the
         // fact that rtt_min is still not approximate rtt_prop and has some queueing overhead on
         // the downstream side, coarsely approximate to be 10%
-        let elapsed_scaled =
-            (base_delay + *current_rtt).as_micros() as f64 - 0.9 * self.rtt_min.as_micros() as f64;
+        let elapsed_scale = current_rtt.as_micros() as f64 - 0.9 * self.rtt_min.as_micros() as f64;
+        // base_delay used to be an adjustment to the elapsed time scale, but it's not very
+        // intuitive for system operators, who just want to increase/decrease the minumum delay, so
+        // the below was scrapped
+        // (base_delay + *current_rtt).as_micros() as f64 - 0.9 * self.rtt_min.as_micros() as f64;
         // alternatively
         // let elapsed_scaled = 1.1 * (*current_rtt - self.rtt_min).as_micros() as f64;//
 
-        let w = elapsed_scaled / estimated_btl_bw.as_micros() as f64;
+        let w = elapsed_scale / estimated_btl_bw.as_micros() as f64;
         // delaying gain: kinda like a reciprocal to BBR's pacing gain
         let delaying_gain = if *current_rtt > rtt_prev {
             // rtt increases => needs to slow down by increasing delaying duration
@@ -48,8 +52,8 @@ impl CongestionControlState {
             // rtt decreases => speeds up by decreasing delaying duration
             1.0 / (1.5 - 0.5 * w.powf(0.25))
         };
-        let sleep_duration = elapsed_scaled * delaying_gain;
-        self.sleep_duration = Duration::from_micros(sleep_duration as u64);
+        let sleep_duration = elapsed_scale * delaying_gain;
+        self.sleep_duration = base_delay + Duration::from_micros(sleep_duration as u64);
     }
 }
 
